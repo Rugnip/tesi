@@ -18,8 +18,6 @@ I dataset possono essere scaricati dai seguenti link:
 
 - australian_users_items.json: https://mcauleylab.ucsd.edu/public_datasets/data/steam/australian_users_items.json.gz
 
-- bundle_data.json: https://mcauleylab.ucsd.edu/public_datasets/data/steam/bundle_data.json.gz
-
 - steam_games.json: https://cseweb.ucsd.edu/~wckang/steam_games.json.gz
 
 Questi file devono essere posizionati all’interno della cartella dataset/ per poter essere utilizzati correttamente dagli script del progetto.
@@ -51,3 +49,9 @@ git add .
 git commit -m "Commento commit"
 git push origin main
 
+# Ripulimento dataset
+
+Per quanto riguarda il dataset steam_games, è stato necessario effettuare un’operazione di pulizia preliminare al fine di selezionare solo gli attributi utili all’analisi. Tuttavia, il file originale non era in un formato JSON standard: ciascuna riga del file conteneva infatti un dizionario Python serializzato, caratterizzato da stringhe nel formato u'...' (tipico delle rappresentazioni Unicode di Python) e dall’uso di apici singoli anziché doppi. Questo formato non è direttamente compatibile con i metodi tradizionali di lettura JSON.
+
+Per poter elaborare correttamente il dataset, è stato sviluppato uno script Python dedicato alla conversione e alla pulizia dei dati, così da poter ottenere un file json pulito e ordinato, con le informazioni a noi interessate.
+Il file pulito è stato inserito in una cartella nuova, ovvero dataset_clean' ovvero la cartella che andremo ad utilizzare per interagire con i vari datset.
