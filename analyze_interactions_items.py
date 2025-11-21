@@ -95,7 +95,7 @@ def main():
     # DataFrame per utenti
     df_user = pd.DataFrame(user_counts)
 
-    # DataFrame per giochi
+    # DataFrame per giochi (ID gioco + numero di utenti che lo possiedono)
     df_game = (
         pd.Series(item_counter, name="n_interactions")
         .reset_index()
@@ -118,12 +118,61 @@ def main():
     print(f"Mean  : {game_stats['mean']:.3f}")
     print(f"Max   : {game_stats['max']}")
 
+    # ==============================
+    #   AGGIUNGIAMO L'ANNO DI RILASCIO AI GIOCHI
+    # ==============================
 
-    # salvataggio CSV
+    steam_clean_path = CLEAN_DIR / "steam_games_clean.json"
+    print(f"\nCarico giochi clean: {steam_clean_path}")
+    steam_df = pd.read_json(steam_clean_path)
+
+    # controlliamo che ci siano le colonne che servono
+    for col in ["id", "release_date"]:
+        if col not in steam_df.columns:
+            raise ValueError(
+                f"Colonna '{col}' non trovata in steam_games_clean.json. "
+                f"Colonne disponibili: {steam_df.columns.tolist()}"
+            )
+
+    # normalizziamo ID per il join (evitiamo problemi tipo '10' vs '10.0')
+    df_game["item_id_norm"] = (
+        df_game["item_id"].astype(str).str.strip().str.replace(r"\.0$", "", regex=True)
+    )
+    steam_df["id_norm"] = (
+        steam_df["id"].astype(str).str.strip().str.replace(r"\.0$", "", regex=True)
+    )
+
+    # join per aggiungere la release_date
+    merged = df_game.merge(
+        steam_df[["id_norm", "release_date"]],
+        left_on="item_id_norm",
+        right_on="id_norm",
+        how="left",
+    )
+
+    # estraiamo l'anno di rilascio
+    parsed_dates = pd.to_datetime(merged["release_date"], errors="coerce")
+    merged["release_year"] = parsed_dates.dt.year.astype("Int64")
+
+    # possiamo opzionalmente avvisare se qualche gioco non ha anno
+    missing_year = merged["release_year"].isna().sum()
+    if missing_year > 0:
+        print(f"\n[WARN] Giochi senza anno di rilascio: {missing_year}")
+
+    # ==============================
+    #   SALVATAGGIO CSV
+    # ==============================
+
+    # utenti: come prima
     df_user.to_csv(OUTPUT_DIR / "items_interactions_per_user.csv", index=False)
-    df_game.to_csv(OUTPUT_DIR / "items_interactions_per_game.csv", index=False)
+
+    # giochi: ORA con anche release_year
+    df_games_out = merged[["item_id", "n_interactions", "release_year"]]
+    df_games_out.to_csv(OUTPUT_DIR / "items_interactions_per_game.csv", index=False)
 
     print(f"\nCSV salvati in: {OUTPUT_DIR.resolve()}")
+    print(" - items_interactions_per_user.csv")
+    print(" - items_interactions_per_game.csv (con release_year)")
 
 
 if __name__ == "__main__":
