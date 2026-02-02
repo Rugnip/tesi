@@ -1,2 +1,6 @@
 dataset/
 dataset_clean/
+.env/
+.vscode/
+
+
